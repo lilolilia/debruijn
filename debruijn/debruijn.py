@@ -13,6 +13,7 @@
 
 """Perform assembly based on debruijn graph."""
 
+from random import randint
 import argparse
 import os
 import sys
@@ -21,7 +22,6 @@ import matplotlib
 from operator import itemgetter
 import random
 random.seed(9001)
-from random import randint
 import statistics
 import textwrap
 import matplotlib.pyplot as plt
@@ -81,6 +81,15 @@ def read_fastq(fastq_file):
     :param fastq_file: (str) Path to the fastq file.
     :return: A generator object that iterate the read sequences. 
     """
+
+    with open(fastq_file, 'r') as fileseq:
+        lines = []
+        for line in fileseq:
+            yield next(fileseq).strip()
+            next (fileseq)
+            next (fileseq)
+
+
     pass
 
 
@@ -90,6 +99,8 @@ def cut_kmer(read, kmer_size):
     :param read: (str) Sequence of a read.
     :return: A generator object that iterate the kmers of of size kmer_size.
     """
+    for i in range(kmer_size) :
+        cut()
     pass
 
 
@@ -259,3 +270,10 @@ def main(): # pragma: no cover
 
 if __name__ == '__main__': # pragma: no cover
     main()
+    
+    path = "~/debruijn-tp/data/eva71_two_reads.fq"
+    isfile(path)
+    fastq = list(read_fastq(path))
+
+
+
