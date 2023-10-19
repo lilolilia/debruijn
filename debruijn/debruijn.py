@@ -90,18 +90,15 @@ def read_fastq(fastq_file):
             next (fileseq)
 
 
-    pass
-
-
 def cut_kmer(read, kmer_size):
     """Cut read into kmers of size kmer_size.
     
     :param read: (str) Sequence of a read.
     :return: A generator object that iterate the kmers of of size kmer_size.
     """
-    for i in range(kmer_size) :
-        cut()
-    pass
+    for i in range(len(read) - kmer_size + 1) :
+        yield read[i:i + kmer_size]
+    
 
 
 def build_kmer_dict(fastq_file, kmer_size):
@@ -110,7 +107,15 @@ def build_kmer_dict(fastq_file, kmer_size):
     :param fastq_file: (str) Path to the fastq file.
     :return: A dictionnary object that identify all kmer occurrences.
     """
-    pass
+
+    kmer_dict = {}
+
+    for read in read_fastq(fastq_file):
+        for kmer in cut_kmer(read, kmer_size) :
+            kmer_dict[kmer]=kmer_dict.get(kmer, 0) + 1
+    
+    return kmer_dict
+
 
 
 def build_graph(kmer_dict):
@@ -119,7 +124,23 @@ def build_graph(kmer_dict):
     :param kmer_dict: A dictionnary object that identify all kmer occurrences.
     :return: A directed graph (nx) of all kmer substring and weight (occurrence).
     """
-    pass
+    import networkx as nx
+
+    db_graph = nx.DiGraph()
+
+    for kmer, occurence in kmer_dict.items() : 
+        preffix = kmer[:-1]
+        suffix = kmer[1:]
+        
+        if preffix not in db_graph : 
+            db_graph.add_node(preffix)
+        
+        if suffix not in db_graph :
+            db_graph.add_node(suffix)
+        
+        db_graph.add_edge(preffix, suffix, weight = occurence)
+
+    return db_graph
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
@@ -132,6 +153,7 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     :param delete_sink_node: (boolean) True->We remove the last node of a path
     :return: (nx.DiGraph) A directed graph object
     """
+
     pass
 
 
@@ -198,7 +220,13 @@ def get_starting_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without predecessors
     """
-    pass
+    starting_nodes = []
+
+    for node in graph.nodes : 
+        if not any (graph.predecessors(node)) :
+            starting_nodes.append(node)
+
+    return starting_nodes
 
 def get_sink_nodes(graph):
     """Get nodes without successors
@@ -206,7 +234,13 @@ def get_sink_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without successors
     """
-    pass
+    sink_nodes = []
+
+    for node in graph.nodes :
+        if not any (graph.neighbors(node)) :
+            sink_nodes.append(node)
+    
+    return sink_nodes
 
 def get_contigs(graph, starting_nodes, ending_nodes):
     """Extract the contigs from the graph
@@ -216,7 +250,18 @@ def get_contigs(graph, starting_nodes, ending_nodes):
     :param ending_nodes: (list) A list of nodes without successors
     :return: (list) List of [contiguous sequence and their length]
     """
-    pass
+    contig_list = []
+
+    for start_node in starting_nodes:
+        for end_node in ending_nodes:
+            if nx.has_path(graph, start_node, end_node) :
+                for path in nx.all_simple_paths(graph, source=start_node, target=end_node) :
+                    contig = path[0]
+                    for i in range(1, len(path)):
+                        contig += path[i][-1]
+                contig_list.append((contig, len(contig))) 
+
+    return contig_list
 
 def save_contigs(contigs_list, output_file):
     """Write all contigs in fasta format
@@ -224,7 +269,14 @@ def save_contigs(contigs_list, output_file):
     :param contig_list: (list) List of [contiguous sequence and their length]
     :param output_file: (str) Path to the output file
     """
-    pass
+    with open(output_file, "w") as f:
+        j=0
+        for i in contigs_list :
+            f.write(f">contig_{j} len={i[1]}\n")
+            f.write(f"{textwrap.fill(i[0],width=80)}\n")
+            j+=1
+    pass  
+
 
 
 def draw_graph(graph, graphimg_file): # pragma: no cover
@@ -269,11 +321,25 @@ def main(): # pragma: no cover
 
 
 if __name__ == '__main__': # pragma: no cover
-    main()
     
-    path = "~/debruijn-tp/data/eva71_two_reads.fq"
-    isfile(path)
-    fastq = list(read_fastq(path))
+    main()
+
+    path = "../debruijn-tp/data/eva71_two_reads.fq"
+    fastq = read_fastq(path)
+    kmer_dict = build_kmer_dict(fastq, 4)
+    print(kmer_dict)
+    db_graph = build_graph(kmer_dict)
+    print(db_graph)
+    start_node = get_starting_nodes(db_graph)
+    print(start_node)
+    end_nodes = get_sink_nodes(db_graph)
+    print(start_node)
+    contig_list = get_contigs(db_graph, start_node, end_nodes)
+    print(contig_list)
+
+    
+    
+
 
 
 
